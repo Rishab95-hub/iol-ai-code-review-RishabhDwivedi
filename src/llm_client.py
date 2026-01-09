@@ -103,9 +103,7 @@ FOCUS AREAS: {focus_areas_str}
 ENABLED CHECKS: {checks_str}
 
 CODE DIFF:
-```
 {code_diff}
-```
 
 {f"CUSTOM GUIDELINES:\n{custom_guidelines}\n" if custom_guidelines else ""}
 
