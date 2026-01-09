@@ -28,7 +28,7 @@ class ConfigLoader:
         'max_comments': 50,
         'llm': {
             'provider': 'openai',
-            'model': 'gpt-4',
+            'model': 'gpt-4o-mini',
             'temperature': 0.3,
             'max_tokens': 2000
         },
@@ -97,8 +97,20 @@ class ConfigLoader:
         return [check for check, enabled in self.config['checks'].items() if enabled]
     
     def get_llm_config(self) -> Dict[str, Any]:
-        """Get LLM configuration"""
-        return self.config['llm']
+        """Get LLM configuration with environment variable overrides"""
+        llm_config = self.config['llm'].copy()
+        
+        # Allow environment variables to override config file
+        if os.getenv('LLM_PROVIDER'):
+            llm_config['provider'] = os.getenv('LLM_PROVIDER')
+        if os.getenv('LLM_MODEL'):
+            llm_config['model'] = os.getenv('LLM_MODEL')
+        if os.getenv('LLM_TEMPERATURE'):
+            llm_config['temperature'] = float(os.getenv('LLM_TEMPERATURE'))
+        if os.getenv('LLM_MAX_TOKENS'):
+            llm_config['max_tokens'] = int(os.getenv('LLM_MAX_TOKENS'))
+        
+        return llm_config
     
     def get_max_comments(self) -> int:
         """Get maximum number of comments allowed"""
