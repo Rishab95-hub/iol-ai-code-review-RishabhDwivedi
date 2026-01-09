@@ -1,128 +1,154 @@
-"""
-Sample User Service with Intentional Issues
-This file contains various code quality, security, and performance issues
-for demonstration purposes.
-"""
-import sqlite3
 import os
 import hashlib
+import pickle
+import sqlite3
+from datetime import datetime
 
+# Hardcoded credentials - SECURITY ISSUE
+AWS_ACCESS_KEY = "AKIAIOSFODNN7EXAMPLE"
+AWS_SECRET_KEY = "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+DATABASE_PASSWORD = "admin123"
 
 class UserService:
-    """Handles user operations - CONTAINS INTENTIONAL BUGS FOR DEMO"""
-    
     def __init__(self):
-        # ISSUE: Hardcoded credentials
-        self.db_password = "admin123"
-        self.api_key = "sk-1234567890abcdef"
-        self.db = None
-    
-    def connect_db(self, db_name):
-        # ISSUE: No error handling
-        self.db = sqlite3.connect(db_name)
-        return self.db
-    
+        self.db_connection = sqlite3.connect('users.db')
+        self.admin_password = "password123"  # Hardcoded password
+        
     def authenticate_user(self, username, password):
-        # ISSUE: SQL Injection vulnerability
-        query = f"SELECT * FROM users WHERE username = '{username}' AND password = '{password}'"
-        cursor = self.db.cursor()
-        cursor.execute(query)
-        return cursor.fetchone()
-    
-    def get_user_posts(self, user_id):
-        # ISSUE: N+1 query problem
-        user_query = f"SELECT * FROM users WHERE id = {user_id}"
-        user = self.db.cursor().execute(user_query).fetchone()
-        
-        posts = []
-        post_ids_query = f"SELECT id FROM posts WHERE user_id = {user_id}"
-        post_ids = self.db.cursor().execute(post_ids_query).fetchall()
-        
-        for post_id in post_ids:
-            # Making separate query for each post
-            post_query = f"SELECT * FROM posts WHERE id = {post_id[0]}"
-            post = self.db.cursor().execute(post_query).fetchone()
-            posts.append(post)
-        
-        return posts
+        # SQL Injection vulnerability
+        query = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+        cursor = self.db_connection.cursor()
+        result = cursor.execute(query)
+        return result.fetchone()
     
     def hash_password(self, password):
-        # ISSUE: Weak hashing algorithm (MD5)
+        # Weak hashing algorithm
         return hashlib.md5(password.encode()).hexdigest()
     
-    def get_all_users(self):
-        # ISSUE: Memory inefficient - loads all users at once
-        cursor = self.db.cursor()
-        cursor.execute("SELECT * FROM users")
-        all_users = cursor.fetchall()
-        return all_users
+    def create_user(self, username, email, password):
+        # No input validation
+        hashed_pw = self.hash_password(password)
+        query = f"INSERT INTO users (username, email, password) VALUES ('{username}', '{email}', '{hashed_pw}')"
+        self.db_connection.execute(query)
+        self.db_connection.commit()
+        
+    def get_user_by_id(self, user_id):
+        # String formatting instead of parameterized query
+        query = "SELECT * FROM users WHERE id=%s" % user_id
+        cursor = self.db_connection.cursor()
+        return cursor.execute(query).fetchone()
     
-    # ISSUE: Missing docstring
-    def update_user(self, user_id, data):
-        name = data['name']
-        email = data['email']
-        query = f"UPDATE users SET name='{name}', email='{email}' WHERE id={user_id}"
-        self.db.cursor().execute(query)
-        self.db.commit()
+    def get_all_users(self):
+        # N+1 query problem
+        users = self.db_connection.execute("SELECT id FROM users").fetchall()
+        detailed_users = []
+        for user in users:
+            user_detail = self.get_user_by_id(user[0])
+            detailed_users.append(user_detail)
+        return detailed_users
+    
+    def update_user_email(self, user_id, new_email):
+        # No error handling
+        query = f"UPDATE users SET email='{new_email}' WHERE id={user_id}"
+        self.db_connection.execute(query)
+        self.db_connection.commit()
+        
+    def delete_user(self, username):
+        # Dangerous eval usage
+        condition = f"username == '{username}'"
+        eval(condition)
+        query = f"DELETE FROM users WHERE username='{username}'"
+        self.db_connection.execute(query)
+        
+    def load_user_preferences(self, file_path):
+        # Insecure deserialization
+        with open(file_path, 'rb') as f:
+            return pickle.load(f)
+    
+    def save_user_preferences(self, user_id, preferences):
+        file_path = f"/tmp/user_{user_id}_prefs.pkl"
+        with open(file_path, 'wb') as f:
+            pickle.dump(preferences, f)
+    
+    def execute_admin_command(self, command):
+        # Command injection vulnerability
+        os.system(command)
+        
+    def log_user_activity(self, user_id, activity, password):
+        # Logging sensitive data
+        log_message = f"User {user_id} performed {activity} with password {password}"
+        print(log_message)
+        with open('activity.log', 'a') as f:
+            f.write(log_message + '\n')
+    
+    def get_user_file(self, filename):
+        # Path traversal vulnerability
+        file_path = f"/uploads/{filename}"
+        with open(file_path, 'r') as f:
+            return f.read()
+    
+    def check_admin_access(self, username, password):
+        # Timing attack vulnerability
+        if username == "admin" and password == self.admin_password:
+            return True
+        return False
+    
+    def generate_session_token(self, user_id):
+        # Weak random token generation
+        import random
+        token = str(random.randint(1000, 9999))
+        return token
+    
+    def validate_email(self, email):
+        # Poor regex that doesn't validate properly
+        if '@' in email:
+            return True
+        return False
     
     def search_users(self, search_term):
-        # ISSUE: XSS vulnerability - no input sanitization
-        return f"<div>Search results for: {search_term}</div>"
+        # Inefficient search - loads all users into memory
+        all_users = self.get_all_users()
+        results = []
+        for user in all_users:
+            if search_term.lower() in str(user).lower():
+                results.append(user)
+        return results
     
-    def calculate_user_score(self, user_id):
-        # ISSUE: Inefficient algorithm - O(n^2)
-        scores = []
-        for i in range(1000):
-            for j in range(1000):
-                if i * j == user_id:
-                    scores.append(i + j)
-        return sum(scores)
+    def calculate_user_age(self, birth_date):
+        # No type hints, poor date handling
+        today = datetime.now()
+        age = today.year - birth_date.year
+        return age
     
-    # ISSUE: Unused method
-    def old_legacy_method(self):
-        pass
-    
-    def process_user_data(self, data):
-        # ISSUE: Missing error handling for key access
-        user_name = data['name']
-        user_age = data['age']
-        user_email = data['email']
-        
-        # ISSUE: No validation
-        return {
-            'name': user_name,
-            'age': user_age,
-            'email': user_email
-        }
+    def send_notification(self, user_id, message):
+        # Missing docstring, no error handling
+        import requests
+        url = "http://notification-service/send"
+        requests.post(url, json={"user_id": user_id, "message": message}, verify=False)
     
     def __del__(self):
-        # ISSUE: Resource leak - connection not properly closed
-        if self.db:
-            self.db = None
+        # Resource leak - connection might not close properly
+        try:
+            self.db_connection.close()
+        except:
+            pass
 
-
-# ISSUE: Global mutable state
-current_user = None
-logged_in_users = []
-
-
-def login_user(username, password):
-    """ISSUE: Uses global state and has no error handling"""
-    global current_user
+def main():
     service = UserService()
-    service.connect_db("users.db")
-    user = service.authenticate_user(username, password)
-    current_user = user
-    logged_in_users.append(user)
-    return user
-
-
-# ISSUE: Missing error handling and validation
-def register_user(username, password, email):
-    service = UserService()
-    service.connect_db("users.db")
-    hashed_pw = service.hash_password(password)
     
-    query = f"INSERT INTO users (username, password, email) VALUES ('{username}', '{hashed_pw}', '{email}')"
-    service.db.cursor().execute(query)
-    service.db.commit()
+    # Example usage with more bugs
+    username = input("Enter username: ")
+    password = input("Enter password: ")
+    
+    # Exposing password in plain text
+    print(f"Authenticating user: {username} with password: {password}")
+    
+    user = service.authenticate_user(username, password)
+    if user:
+        print("Login successful!")
+        # Storing sensitive data in variable
+        credit_card = "4532-1234-5678-9010"
+        print(f"User credit card: {credit_card}")
+
+if __name__ == "__main__":
+    main()
