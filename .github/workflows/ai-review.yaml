@@ -1,61 +1,71 @@
-# AI Code Review Configuration
-# Place this file in your repository root to customize the review behavior
+name: AI Code Review
 
-# Files and directories to ignore during review
-ignore_patterns:
-  - "*.md"
-  - "*.txt"
-  - "*.json"
-  - "*.yaml"
-  - "*.yml"
-  - "node_modules/**"
-  - "venv/**"
-  - "dist/**"
-  - "build/**"
-  - "__pycache__/**"
-  - ".git/**"
-  - "*.min.js"
-  - "*.min.css"
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+      - develop
 
-# Review focus areas (set to true to enable)
-focus_areas:
-  code_quality: true
-  security: true
-  performance: true
-  best_practices: true
-  documentation: true
-
-# Severity thresholds
-# Set minimum severity level to block PR: "critical", "warning", "suggestion", or "none"
-block_pr_on: "critical"
-
-# Maximum number of comments per PR (to avoid spam)
-max_comments: 50
-
-# LLM Configuration
-llm:
-  provider: "openai"  # Options: "openai", "anthropic", "azure_openai"
-  model: "gpt-4o-mini"  # or "gpt-4", "gpt-3.5-turbo", "claude-3-sonnet-20240229", etc.
-  temperature: 0.3
-  max_tokens: 2000
-
-# Custom rules or guidelines (optional)
-custom_guidelines: |
-  - Follow PEP 8 style guide for Python code
-  - All functions must have docstrings
-  - Use type hints for function signatures
-  - Prefer list comprehensions over map/filter
-  - Use context managers for file operations
-
-# Enable/disable specific checks
-checks:
-  sql_injection: true
-  xss_vulnerabilities: true
-  hardcoded_secrets: true
-  insecure_dependencies: true
-  code_smells: true
-  anti_patterns: true
-  memory_leaks: true
-  n_plus_one_queries: true
-  missing_error_handling: true
-  unused_imports: true
+jobs:
+  ai-code-review:
+    name: AI-Powered Code Review
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for better context
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run AI Code Review
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          REPO_PATH: ${{ github.workspace }}
+          
+          # LLM API Keys (set these as repository secrets)
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
+          AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
+          
+          # Optional: Override LLM provider/model
+          # LLM_PROVIDER: openai
+          # LLM_MODEL: gpt-4
+        run: |
+          python -m src.main
+      
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: ai-review-logs
+          path: |
+            *.log
+          retention-days: 7
