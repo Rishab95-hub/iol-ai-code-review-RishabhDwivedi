@@ -10,7 +10,7 @@ import json
 class LLMClient:
     """Client for interacting with LLM providers"""
     
-    def __init__(self, provider: str = "openai", model: str = "gpt-4", 
+    def __init__(self, provider: str = "openai", model: str = "gpt-4o-mini", 
                  temperature: float = 0.3, max_tokens: int = 2000):
         """Initialize LLM client with provider and model settings"""
         self.provider = provider.lower()
