@@ -43,9 +43,14 @@ def main():
         
         print("\n🤖 Initializing LLM client...")
         llm_config = config.get_llm_config()
+        
+        # Get provider and model from env vars (ignore empty strings from unset GitHub secrets)
+        provider = os.getenv('LLM_PROVIDER', '').strip() or llm_config['provider']
+        model = os.getenv('LLM_MODEL', '').strip() or llm_config['model']
+        
         llm_client = LLMClient(
-            provider=os.getenv('LLM_PROVIDER', llm_config['provider']),
-            model=os.getenv('LLM_MODEL', llm_config['model']),
+            provider=provider,
+            model=model,
             temperature=llm_config['temperature'],
             max_tokens=llm_config['max_tokens']
         )
