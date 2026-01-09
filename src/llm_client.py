@@ -97,6 +97,10 @@ class LLMClient:
         focus_areas_str = ", ".join(focus_areas)
         checks_str = ", ".join(enabled_checks) if enabled_checks else "all standard checks"
         
+        guidelines_section = ""
+        if custom_guidelines:
+            guidelines_section = f"CUSTOM GUIDELINES:\n{custom_guidelines}\n"
+        
         prompt = f"""You are an expert code reviewer. Analyze the following code diff from file "{file_path}" and provide detailed, actionable feedback.
 
 FOCUS AREAS: {focus_areas_str}
@@ -105,8 +109,7 @@ ENABLED CHECKS: {checks_str}
 CODE DIFF:
 {code_diff}
 
-{f"CUSTOM GUIDELINES:\n{custom_guidelines}\n" if custom_guidelines else ""}
-
+{guidelines_section}
 INSTRUCTIONS:
 1. Analyze the code for:
    - Code Quality: code smells, anti-patterns, maintainability issues
