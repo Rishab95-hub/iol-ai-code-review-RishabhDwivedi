@@ -1,0 +1,61 @@
+# AI Code Review Configuration
+# Place this file in your repository root to customize the review behavior
+
+# Files and directories to ignore during review
+ignore_patterns:
+  - "*.md"
+  - "*.txt"
+  - "*.json"
+  - "*.yaml"
+  - "*.yml"
+  - "node_modules/**"
+  - "venv/**"
+  - "dist/**"
+  - "build/**"
+  - "__pycache__/**"
+  - ".git/**"
+  - "*.min.js"
+  - "*.min.css"
+
+# Review focus areas (set to true to enable)
+focus_areas:
+  code_quality: true
+  security: true
+  performance: true
+  best_practices: true
+  documentation: true
+
+# Severity thresholds
+# Set minimum severity level to block PR: "critical", "warning", "suggestion", or "none"
+block_pr_on: "critical"
+
+# Maximum number of comments per PR (to avoid spam)
+max_comments: 50
+
+# LLM Configuration
+llm:
+  provider: "openai"  # Options: "openai", "anthropic", "azure_openai"
+  model: "gpt-4o-mini"  # or "gpt-4", "gpt-3.5-turbo", "claude-3-sonnet-20240229", etc.
+  temperature: 0.3
+  max_tokens: 2000
+
+# Custom rules or guidelines (optional)
+custom_guidelines: |
+  - Follow PEP 8 style guide for Python code
+  - All functions must have docstrings
+  - Use type hints for function signatures
+  - Prefer list comprehensions over map/filter
+  - Use context managers for file operations
+
+# Enable/disable specific checks
+checks:
+  sql_injection: true
+  xss_vulnerabilities: true
+  hardcoded_secrets: true
+  insecure_dependencies: true
+  code_smells: true
+  anti_patterns: true
+  memory_leaks: true
+  n_plus_one_queries: true
+  missing_error_handling: true
+  unused_imports: true
